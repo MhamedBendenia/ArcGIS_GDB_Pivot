@@ -49,7 +49,7 @@ class Pivot(wx.Frame):
 
     def __init__(self, parent, title):
         super(Pivot, self).__init__(parent, title=title, size=wx.Size(320, 500),
-                                    style=wx.DEFAULT_FRAME_STYLE ^ wx.RESIZE_BORDER)
+                                    style=wx.STAY_ON_TOP ^ wx.DEFAULT_FRAME_STYLE ^ wx.RESIZE_BORDER)
         self.InitUI()
         self.Centre()
         self.Show()
@@ -59,7 +59,7 @@ class Pivot(wx.Frame):
         self.panel = wx.Panel(self)
 
         """List of Feature Classes"""
-        text = wx.StaticText(self.panel, label="Feature Classes :")
+        text = wx.StaticText(self.panel, label="Dimensions :")
         self.sizer.Add(text, pos=(0, 0), flag=wx.ALL, border=5)
         self.listFc = wx.ListCtrl(self.panel, -1, style=wx.LC_REPORT)
         self.listFc.InsertColumn(0, 'name', width=200)
@@ -68,16 +68,21 @@ class Pivot(wx.Frame):
             self.listFc.InsertItem(self.inc, fc.title())
             self.inc += 1
             self.data_warehouse.append(arcpy.da.FeatureClassToNumPyArray(
-                fc, [field.name for field in arcpy.ListFields(
-                    os.path.join(str(self.workspace), fc))]))
+                fc, [field.name for field in arcpy.ListFields(os.path.join(str(self.workspace), fc))]))
+
+        for tb in arcpy.ListTables():
+            self.listFc.InsertItem(self.inc, tb.title())
+            self.inc += 1
+            self.data_warehouse.append(arcpy.da.TableToNumPyArray(
+                tb, [field.name for field in arcpy.ListFields(os.path.join(str(self.workspace), tb))]))
 
         self.inc = 0
 
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnFeatureClick, self.listFc)
         self.sizer.Add(self.listFc, pos=(0, 1), span=(1, 2), border=5)
 
-        """List of selected FC dimension's"""
-        text = wx.StaticText(self.panel, label="Dimensions :")
+        """List of selected dimension key's"""
+        text = wx.StaticText(self.panel, label="Commun Key :")
         self.sizer.Add(text, pos=(1, 0), flag=wx.ALL, border=5)
         self.listDm = wx.ListCtrl(self.panel, -1, style=wx.LC_REPORT)
         self.listDm.InsertColumn(0, 'name', width=200)

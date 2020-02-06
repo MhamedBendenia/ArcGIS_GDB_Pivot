@@ -9,6 +9,7 @@
 from random import randrange
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import arcpy
 import os
 import sys
@@ -23,6 +24,7 @@ class Pivot(wx.Frame):
     active_map = None  # current map
 
     data_warehouse = []
+    Fact = []
     sizer = wx.GridBagSizer(0, 0)
     panel = None
     listFc = None
@@ -67,15 +69,21 @@ class Pivot(wx.Frame):
         for fc in arcpy.ListFeatureClasses():
             self.listFc.InsertItem(self.inc, fc.title())
             self.inc += 1
-            self.data_warehouse.append(arcpy.da.FeatureClassToNumPyArray(
-                fc, [field.name for field in arcpy.ListFields(os.path.join(str(self.workspace), fc))]))
+            self.data_warehouse.append(pd.Series(data=arcpy.da.FeatureClassToNumPyArray(
+                fc, [field.name for field in arcpy.ListFields(os.path.join(str(self.workspace), fc))[1:]]),
+                index=arcpy.da.FeatureClassToNumPyArray(fc, ['OBJECTID']),
+                name=fc.title()))
 
         for tb in arcpy.ListTables():
+            if tb.title() == "Fact":
+                self.Fact.append(arcpy.da.TableToNumPyArray(tb, [field.name for field in arcpy.ListFields(os.path.join(str(self.workspace), tb))]))
+                continue
             self.listFc.InsertItem(self.inc, tb.title())
             self.inc += 1
             self.data_warehouse.append(arcpy.da.TableToNumPyArray(
-                tb, [field.name for field in arcpy.ListFields(os.path.join(str(self.workspace), tb))]))
+                tb, [field.name for field in arcpy.ListFields(os.path.join(str(self.workspace), tb))[1:]]))
 
+        arcpy.AddMessage(self.Fact)
         self.inc = 0
 
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnFeatureClick, self.listFc)
@@ -215,74 +223,3 @@ class Pivot(wx.Frame):
 app = wx.App()
 Pivot(None, title='Pivot')
 app.MainLoop()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# arcpy.AddMessage(self.data_warehouse[self.listFc.GetFirstSelected()][0][self.x].dtype.type)
-# arcpy.AddMessage(self.data_warehouse[self.listFc.GetFirstSelected()][0][self.x])
-
-# if self.data_warehouse[self.listFc.GetFirstSelected()][0][self.x] == np.typename
-# arcpy.AddMessage(arcpy.ListFields(arcpy.ListFeatureClasses()[0])['OID'])
-# arcpy.AddMessage(self.data_warehouse[self.listFc.GetFirstSelected()][:][self.x])
-
-# X == self.sizer.GetChildren()[5].GetWindow().GetLabelText()
-# Y == self.sizer.GetChildren()[7].GetWindow().GetLabelText()
-# Z == self.sizer.GetChildren()[9].GetWindow().GetLabelText()
-
-# yl = arcpy.ListFields(arcpy.ListFeatureClasses()[0])['OID']
-
-# arcpy.AddMessage(arcpy.ListFields(arcpy.ListFeatureClasses()[0])[:])
-# arcpy.AddMessage(yl)
-# if yl.type == 'OID' or yl.type == 'Geometry':
-
-# fig = plt.gcf()
-# fig.show()
-# fig.canvas.draw()
-# x = data_warehouse[0][:][arcpy.ListFields(arcpy.ListFeatureClasses()[0])[6].name]
-# # arcpy.AddMessage(arcpy.ListFields(arcpy.ListFeatureClasses()[0])[6].type)
-# # arcpy.AddMessage(arcpy.ListFields(arcpy.ListFeatureClasses()[1]))
-# plt.xlabel(arcpy.ListFields(arcpy.ListFeatureClasses()[0])[6].name)
-# #   'String'  ('SmallInteger'  'Integer')  ('Double' 'Single')  'Date' 'Geometry'
-# for i in range(len(arcpy.ListFields(arcpy.ListFeatureClasses()[0]))):
-#     yl = arcpy.ListFields(arcpy.ListFeatureClasses()[0])[i]
-#     arcpy.AddMessage(yl.type)
-#     if yl.type == 'OID' or yl.type == 'Geometry':
-#         continue
-#     if i == len(arcpy.ListFields(arcpy.ListFeatureClasses()[0])) - 1:
-#         arcpy.AddMessage("close")
-#         plt.close()
-#         break
-#     plt.ylabel(yl.name)
-#     y = data_warehouse[0][:][yl.name]
-#     # compute something
-#     plt.bar(x, y)  # plot something
-#     # update canvas immediately
-#     plt.pause(5)  # I ain't needed!!!
-#     fig.clear()
-#     fig.canvas.draw()
-
-# lyr = active_map.listLayers()[0]
-# lyrsmb = lyr.symbology
-# lyrsmb.renderer.classificationField

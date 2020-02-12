@@ -15,6 +15,7 @@ import os
 import sys
 import time
 import wx
+import pathlib
 
 
 class Pivot(wx.Frame):
@@ -23,12 +24,12 @@ class Pivot(wx.Frame):
     aprx = arcpy.mp.ArcGISProject("CURRENT")  # current project
     active_map = None  # current map
 
-    data_warehouse = []
-    Fact = []
+    data_warehouse = {}
+    Fact = None
     sizer = wx.GridBagSizer(0, 0)
     panel = None
-    listFc = None
-    listDm = None
+    axes = None
+    xChoice = yChoice = zChoice = None
     Fc = None
     inc = 0
 
@@ -59,90 +60,71 @@ class Pivot(wx.Frame):
     def InitUI(self):
 
         self.panel = wx.Panel(self)
+        self.local = wx.Locale(wx.LANGUAGE_DEFAULT)
 
-        """List of Feature Classes"""
-        text = wx.StaticText(self.panel, label="Dimensions :")
-        self.sizer.Add(text, pos=(0, 0), flag=wx.ALL, border=5)
-        self.listFc = wx.ListCtrl(self.panel, -1, style=wx.LC_REPORT)
-        self.listFc.InsertColumn(0, 'name', width=200)
+        """Axes image"""
+        self.axes = wx.StaticBitmap(self.panel, wx.ID_ANY,
+                                    wx.Bitmap(str(pathlib.Path().absolute().joinpath(r"Scripts\Axes.png")),
+                                              wx.BITMAP_TYPE_PNG), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.axes.Bind(wx.EVT_LEFT_DOWN, self.onAxesClick)
+        self.sizer.Add(self.axes, pos=(1, 1), flag=wx.ALL, border=5)
 
+        """The lists of choices"""
+        self.xChoice = wx.Choice(self.panel, wx.ID_ANY, wx.DefaultPosition, size=wx.Size(120, 25), style=0)
+        self.xChoice.Bind(wx.EVT_CHOICE, self.onChoiceClick)
+
+        self.sizer.Add(self.xChoice, pos=(2, 2), flag=wx.ALL, border=5)
+
+        self.yChoice = wx.Choice(self.panel, wx.ID_ANY, wx.DefaultPosition, size=wx.Size(120, 25), style=0)
+        self.yChoice.SetSelection(0)
+        self.sizer.Add(self.yChoice, pos=(0, 1), flag=wx.ALL, border=5)
+
+        self.zChoice = wx.Choice(self.panel, wx.ID_ANY, wx.DefaultPosition, size=wx.Size(120, 25), style=0)
+        self.zChoice.SetSelection(0)
+        self.sizer.Add(self.zChoice, pos=(2, 0), flag=wx.ALL, border=5)
+
+        """Filling the DW and the lists by feature classes"""
         for fc in arcpy.ListFeatureClasses():
-            self.listFc.InsertItem(self.inc, fc.title())
-            self.inc += 1
-            self.data_warehouse.append(pd.Series(data=arcpy.da.FeatureClassToNumPyArray(
-                fc, [field.name for field in arcpy.ListFields(os.path.join(str(self.workspace), fc))[1:]]),
-                index=arcpy.da.FeatureClassToNumPyArray(fc, ['OBJECTID']),
-                name=fc.title()))
+            self.xChoice.Append(fc.title())
+            self.yChoice.Append(fc.title())
+            self.zChoice.Append(fc.title())
+            # self.data_warehouse[fc.title()] = pd.DataFrame(data=arcpy.da.FeatureClassToNumPyArray(
+            #     fc, [field.name for field in arcpy.ListFields(os.path.join(str(self.workspace), fc))[2:]]),
+            #     index=arcpy.da.FeatureClassToNumPyArray(fc, ['OBJECTID'])[:]['OBJECTID'],
+            #     columns=[field.name for field in arcpy.ListFields(os.path.join(str(self.workspace), fc))[2:]])
 
+        """Filling the DW and the lists by tables"""
         for tb in arcpy.ListTables():
             if tb.title() == "Fact":
-                self.Fact.append(arcpy.da.TableToNumPyArray(tb, [field.name for field in arcpy.ListFields(os.path.join(str(self.workspace), tb))]))
+                self.Fact = pd.DataFrame(data=arcpy.da.TableToNumPyArray(
+                    tb, [field.name for field in arcpy.ListFields(os.path.join(str(self.workspace), tb))[1:]]),
+                    index=arcpy.da.FeatureClassToNumPyArray(tb, ['OBJECTID'])[:]['OBJECTID'],
+                    columns=[field.name for field in arcpy.ListFields(os.path.join(str(self.workspace), tb))[1:]])
                 continue
-            self.listFc.InsertItem(self.inc, tb.title())
-            self.inc += 1
-            self.data_warehouse.append(arcpy.da.TableToNumPyArray(
-                tb, [field.name for field in arcpy.ListFields(os.path.join(str(self.workspace), tb))[1:]]))
+            self.xChoice.Append(tb.title())
+            self.yChoice.Append(tb.title())
+            self.zChoice.Append(tb.title())
+            # self.data_warehouse[tb.title()] = pd.DataFrame(data=arcpy.da.TableToNumPyArray(
+            #     tb, [field.name for field in arcpy.ListFields(os.path.join(str(self.workspace), tb))[1:]]),
+            #     index=arcpy.da.FeatureClassToNumPyArray(tb, ['OBJECTID'])[:]['OBJECTID'],
+            #     columns=[field.name for field in arcpy.ListFields(os.path.join(str(self.workspace), tb))[1:]])
 
-        arcpy.AddMessage(self.Fact)
-        self.inc = 0
-
-        self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnFeatureClick, self.listFc)
-        self.sizer.Add(self.listFc, pos=(0, 1), span=(1, 2), border=5)
-
-        """List of selected dimension key's"""
-        text = wx.StaticText(self.panel, label="Commun Key :")
-        self.sizer.Add(text, pos=(1, 0), flag=wx.ALL, border=5)
-        self.listDm = wx.ListCtrl(self.panel, -1, style=wx.LC_REPORT)
-        self.listDm.InsertColumn(0, 'name', width=200)
-
-        self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnDimensionClick, self.listDm)
-        self.sizer.Add(self.listDm, pos=(1, 1), span=(1, 2), border=5)
-
-        """X axis"""
-        self.sizer.Add(wx.StaticText(self.panel, label="X :"), pos=(2, 0), flag=wx.ALIGN_CENTER | wx.ALL, border=5)
-        self.sizer.Add(wx.StaticText(self.panel, label=""), pos=(2, 1), flag=wx.ALIGN_CENTER | wx.ALL, border=5)
-
-        """Y axis"""
-        self.sizer.Add(wx.StaticText(self.panel, label="Y :"), pos=(3, 0), flag=wx.ALIGN_CENTER | wx.ALL, border=5)
-        self.sizer.Add(wx.StaticText(self.panel, label=""), pos=(3, 1), flag=wx.ALIGN_CENTER | wx.ALL, border=5)
-
-        """Z axis"""
-        self.sizer.Add(wx.StaticText(self.panel, label="Z :"), pos=(4, 0), flag=wx.ALIGN_CENTER | wx.ALL, border=5)
-        self.sizer.Add(wx.StaticText(self.panel, label=""), pos=(4, 1), flag=wx.ALIGN_CENTER | wx.ALL, border=5)
-
-        """Run"""
-        buttonRun = wx.Button(self.panel, label="Run")
-        self.sizer.Add(buttonRun, pos=(5, 1), flag=wx.ALL, border=5)
-        buttonRun.Bind(wx.EVT_BUTTON, self.OnRunClicked)
-
-        """Pivot"""
-        buttonPivot = wx.Button(self.panel, label="Pivot")
-        self.sizer.Add(buttonPivot, pos=(5, 2), flag=wx.ALL, border=5)
-        buttonPivot.Bind(wx.EVT_BUTTON, self.OnPivotClicked)
+        # y = self.data_warehouse["Us_Accidents_Xy"].loc[lambda df: df['Severity'] == 2, :].index
+        # x = self.Fact.loc[lambda df: df['accident_id'].isin(y), "state_id"]
+        # arcpy.AddMessage(self.data_warehouse[0].loc[lambda df: df['Severity'] == 2, :].index)
+        # arcpy.AddMessage(self.data_warehouse[0].loc[lambda df: df['Severity'] == 2, :])
+        # arcpy.AddMessage(x.groupby("state_id"))
 
         self.panel.SetSizerAndFit(self.sizer)
 
-    def OnFeatureClick(self, event):
-        self.listDm.ClearAll()
-        self.listDm.InsertColumn(0, 'name', width=200)
-        for field in arcpy.ListFields(event.GetText()):
-            if field.type == 'OID':
-                continue
-            self.listDm.InsertStringItem(0, field.name)
+    def onAxesClick(self, evt):
+        x, y = evt.GetPosition()
+        print("clicked at ", x, y)
+        return
 
-    def OnDimensionClick(self, event):
-        if self.inc == 0:
-            self.x = event.GetText()
-            self.sizer.GetChildren()[5].GetWindow().SetLabelText(self.x)
-            self.inc = 1
-        elif self.inc == 1:
-            self.y = event.GetText()
-            self.sizer.GetChildren()[7].GetWindow().SetLabelText(self.y)
-            self.inc = 2
-        else:
-            self.z = event.GetText()
-            self.sizer.GetChildren()[9].GetWindow().SetLabelText(self.z)
-            self.inc = 0
+    def onChoiceClick(self, evt):
+        print(evt.GetString())
+
 
     def OnRunClicked(self, event):
         """ 'String'  ('SmallInteger'  'Integer')  ('Double' 'Single')  'Date' 'Geometry' """
@@ -223,3 +205,11 @@ class Pivot(wx.Frame):
 app = wx.App()
 Pivot(None, title='Pivot')
 app.MainLoop()
+
+
+# FindHotSpots(point_layer, output_name, {bin_size}, {neighborhood_size})
+#
+# arcpy.Describe('us_states').ShapeType
+# 'Polygon'
+
+# list(d.keys())[0]

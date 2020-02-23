@@ -6,11 +6,13 @@
 -------------------------------------------------------------------------
 """
 
+
 from random import randrange
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import arcpy
+from arcgis import GIS
 import os
 import sys
 import time
@@ -182,13 +184,17 @@ class Pivot(wx.Frame):
                               freq='M')
             else:
                 arcpy.AddMessage("6")
-                """Time cursor X"""
 
-                """Plot X(time) Y(point)"""
+                """Time cursor X"""
+                self.setTimeCursor(lyr_name=self.yChoice.GetString(self.yChoice.GetSelection()).lower(),
+                                   data_table_name="us_time",
+                                   data_join_field="Date")
+
+                """Plot X(states) Y(count_accidents)"""
                 self.dataPlot(x_data_name=self.yChoice.GetString(self.yChoice.GetSelection()).lower(),
-                              x_data_field="Date_id",
-                              y_data_name=self.yChoice.GetString(self.yChoice.GetSelection()).lower(),
-                              y_data_field="Date_id")
+                              x_data_field="STATE_ABBR",
+                              y_data_name=self.zChoice.GetString(self.zChoice.GetSelection()).lower(),
+                              y_data_field="State_id")
 
         elif arcpy.da.Describe(self.yChoice.GetString(self.yChoice.GetSelection()).lower())["dataType"] == "TableView":
             if arcpy.Describe(self.xChoice.GetString(self.xChoice.GetSelection()).lower()).ShapeType == "Point":
@@ -285,17 +291,17 @@ class Pivot(wx.Frame):
         lyr = self.lyr_dict[lyr_name]
         definition = lyr.getDefinition('V2')
         definition.labelClasses[0].expression = '$feature.' + \
-                                                self.data_warehouse[lyr.name.lower()].columns.array[field_pos]
+                                                self.data_warehouse[lyr.name.lower()].columns[field_pos]
         definition.labelVisibility = True
         lyr.setDefinition(definition)
         return
 
-    def makeSymb(self, lyr_name, field_pos=None, render='SimpleRenderer'):
+    def makeSymb(self, lyr_name, field_pos, render='SimpleRenderer'):
         # 'UniqueValueRenderer'  'GraduatedColorsRenderer' 'SimpleRenderer'
         lyr = self.lyr_dict[lyr_name]
         lyrsmb = lyr.symbology
         lyrsmb.updateRenderer(render)
-        lyrsmb.renderer.classificationField = self.data_warehouse[lyr.name.lower()].columns.array[field_pos]
+        lyrsmb.renderer.classificationField = self.data_warehouse[lyr.name.lower()].columns[field_pos]
         if render == 'GraduatedColorsRenderer':
             lyrsmb.renderer.classificationMethod = 'NaturalBreaks'
         else:
@@ -303,10 +309,27 @@ class Pivot(wx.Frame):
         lyr.symbology = lyrsmb
         return
 
-    def timePlot(self, data_name=None, data_field=None, date_table_name=None, date_field=None, freq='M'):
+    def setTimeCursor(self, lyr_name, data_table_name, data_join_field):
+        # data = self.data_warehouse[data_name].set_index(data_field).join(self.data_warehouse[date_table_name]) \
+        #     .set_index(date_field).groupby(pd.Grouper(freq='Y')).count()
+        # arcpy.AddMessage(data)
+        # lyr = self.lyr_dict[lyr_name]
+        # definition = lyr.getDefinition('V2')
+        # definition.featureTable.timeFields.startTimeField = date_table_name + "." + time_field
+        # # definition.featureTable.timeFields.timeValueFormat =
+        # definition.featureTable.timeDefinition.useTime = True
+        # lyr.setDefinition(definition)
+        return
+
+    def timePlot(self, data_name, data_field, date_table_name, date_field, freq='M'):
         data = self.data_warehouse[data_name].set_index(data_field).join(self.data_warehouse[date_table_name]) \
             .set_index(date_field).groupby(pd.Grouper(freq=freq)).count()
-        arcpy.AddMessage(data)
+        g = self.data_warehouse["us_accidents_xy"].set_index("Date_id").join(self.data_warehouse["us_time"])\
+            .set_index("State_id").join(self.data_warehouse["us_states"]).groupby(["STATE_NAME", "Date"]).count()
+        arcpy.AddMessage(g.columns)
+        g.spatial.to_table("test")
+        # h = g.set_index("State_id").join(self.data_warehouse["us_states"])
+        # arcpy.AddMessage(h)
         fig, axes = plt.subplots(figsize=(8, 4))
         axes.plot(data.index, data.values, '-')
         axes.set_xlabel("Time")
@@ -315,10 +338,17 @@ class Pivot(wx.Frame):
         plt.show()
         return
 
-    def dataPlot(self, x_data_name=None, x_data_field=None, y_data_name=None, y_data_field=None):
--------------------------------------------------------------------------------------------------------------------------------------------
+    def dataPlot(self, x_data_name, x_data_field, y_data_name, y_data_field):
+        data = self.data_warehouse[x_data_name].merge(self.data_warehouse[y_data_name],
+                                                      left_index=True,
+                                                      right_on=y_data_field,
+                                                      how='outer').groupby([x_data_field]).count()[y_data_field]
+        fig, axes = plt.subplots(figsize=(8, 4))
+        axes.bar(data.index, data.values)
+        axes.set_xlabel(x_data_name)
+        axes.set_ylabel(y_data_name)
+        plt.show()
         return
-
 
 
 app = wx.App()

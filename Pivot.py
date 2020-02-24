@@ -325,8 +325,9 @@ class Pivot(wx.Frame):
         data = self.data_warehouse[data_name].set_index(data_field).join(self.data_warehouse[date_table_name]) \
             .set_index(date_field).groupby(pd.Grouper(freq=freq)).count()
         g = self.data_warehouse["us_accidents_xy"].set_index("Date_id").join(self.data_warehouse["us_time"])\
-            .set_index("State_id").join(self.data_warehouse["us_states"]).groupby(["STATE_NAME", "Date"]).count()
-        arcpy.AddMessage(g.columns)
+            .set_index("State_id").join(self.data_warehouse["us_states"])\
+            .groupby(["STATE_NAME", pd.Grouper(freq='M', key="Date")]).count()
+        arcpy.AddMessage(g)
         g.spatial.to_table("test")
         # h = g.set_index("State_id").join(self.data_warehouse["us_states"])
         # arcpy.AddMessage(h)

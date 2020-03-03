@@ -6,11 +6,12 @@
 -------------------------------------------------------------------------
 """
 
-
+from numba import jit, cuda
 from random import randrange
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+# import geopandas as gpd
 import arcpy
 from arcgis import GIS
 import os
@@ -89,36 +90,23 @@ class Pivot(wx.Frame):
 
         """Filling the DW and the lists by feature classes"""
         for fc in arcpy.ListFeatureClasses():
-            self.xChoice.Append(fc.title())
-            self.yChoice.Append(fc.title())
-            self.zChoice.Append(fc.title())
-            self.data_warehouse[fc.title().lower()] = pd.DataFrame(data=arcpy.da.FeatureClassToNumPyArray(
-                fc, [field.name for field in arcpy.ListFields(os.path.join(str(self.workspace), fc))[2:]]),
-                index=arcpy.da.FeatureClassToNumPyArray(fc, ['OBJECTID'])[:]['OBJECTID'],
-                columns=[field.name for field in arcpy.ListFields(os.path.join(str(self.workspace), fc))[2:]])
+            try:
+                self.data_warehouse[fc.title().lower()] = pd.DataFrame.spatial.from_featureclass(fc)
+                self.xChoice.Append(fc.title())
+                self.yChoice.Append(fc.title())
+                self.zChoice.Append(fc.title())
+            except Exception as e:
+                arcpy.AddError(str(e))
 
         """Filling the DW and the lists by tables"""
         for tb in arcpy.ListTables():
-            if tb.title() == "Fact":
-                self.Fact = pd.DataFrame(data=arcpy.da.TableToNumPyArray(
-                    tb, [field.name for field in arcpy.ListFields(os.path.join(str(self.workspace), tb))[1:]]),
-                    index=arcpy.da.FeatureClassToNumPyArray(tb, ['OBJECTID'])[:]['OBJECTID'],
-                    columns=[field.name for field in arcpy.ListFields(os.path.join(str(self.workspace), tb))[1:]])
-                continue
-            self.xChoice.Append(tb.title())
-            self.yChoice.Append(tb.title())
-            self.zChoice.Append(tb.title())
-            self.data_warehouse[tb.title().lower()] = pd.DataFrame(data=arcpy.da.TableToNumPyArray(
-                tb, [field.name for field in arcpy.ListFields(os.path.join(str(self.workspace), tb))[1:]]),
-                index=arcpy.da.FeatureClassToNumPyArray(tb, ['OBJECTID'])[:]['OBJECTID'],
-                columns=[field.name for field in arcpy.ListFields(os.path.join(str(self.workspace), tb))[1:]])
-
-        # y = self.data_warehouse["Us_Accidents_Xy"].loc[lambda df: df['Severity'] == 2, :].index
-        # x = self.Fact.loc[lambda df: df['accident_id'].isin(y), "state_id"]
-        # arcpy.AddMessage(self.data_warehouse[0].loc[lambda df: df['Severity'] == 2, :].index)
-        # arcpy.AddMessage(self.data_warehouse[0].loc[lambda df: df['Severity'] == 2, :])
-        # arcpy.AddMessage(x.groupby("state_id"))
-
+            try:
+                self.data_warehouse[tb.title().lower()] = pd.DataFrame.spatial.from_table(tb)
+                self.xChoice.Append(tb.title())
+                self.yChoice.Append(tb.title())
+                self.zChoice.Append(tb.title())
+            except Exception as e:
+                arcpy.AddError(str(e))
         self.panel.SetSizerAndFit(self.sizer)
 
     def onAxesClick(self, event):
@@ -164,49 +152,43 @@ class Pivot(wx.Frame):
     def pivotRun(self):
         """ 'String'  ('SmallInteger'  'Integer')  ('Double' 'Single')  'Date' 'Geometry' """
         arcpy.AddMessage("---------------------")
-        if arcpy.da.Describe(self.xChoice.GetString(self.xChoice.GetSelection()).lower())["dataType"] == "TableView":
-            if arcpy.Describe(self.yChoice.GetString(self.yChoice.GetSelection()).lower()).ShapeType == "Point":
+        if self.xChoice.GetString(self.xChoice.GetSelection()).lower() == "date_world_cases":
+            if self.yChoice.GetString(self.yChoice.GetSelection()).lower() == "covid_cases":
                 arcpy.AddMessage("3")
 
                 """Z with Z.fields[0] as label"""
-                self.makeLabel(lyr_name=self.zChoice.GetString(self.zChoice.GetSelection()).lower(), field_pos=0)
+                self.makeLabel(lyr_name=self.zChoice.GetString(self.zChoice.GetSelection()).lower(),
+                               field_name="Country_Re")
 
                 """Z symbolized with Z.fields[3]"""
-                self.makeSymb(lyr_name=self.zChoice.GetString(self.zChoice.GetSelection()).lower(),
-                              field_pos=3,
-                              render="GraduatedColorsRenderer")
+                self.makeSymb(lyr_name=self.zChoice.GetString(self.zChoice.GetSelection()).lower())
 
                 """Plot X(time) Y(point)"""
-                self.timePlot(data_name=self.yChoice.GetString(self.yChoice.GetSelection()).lower(),
-                              data_field="Date_id",
-                              date_table_name=self.xChoice.GetString(self.xChoice.GetSelection()).lower(),
-                              date_field="Date",
-                              freq='M')
+                self.stackPlot(data_name="covid_cases")
+
             else:
                 arcpy.AddMessage("6")
 
                 """Time cursor X"""
-                self.setTimeCursor(lyr_name=self.yChoice.GetString(self.yChoice.GetSelection()).lower(),
-                                   data_table_name="us_time",
-                                   data_join_field="Date")
+                self.setTimeCursor(lyr_name=self.xChoice.GetString(self.xChoice.GetSelection()).lower(),
+                                   time_field="Date")
+
+                """Y symbolized with Y.fields[3]"""
+                self.makeSymb(lyr_name=self.xChoice.GetString(self.xChoice.GetSelection()).lower())
 
                 """Plot X(states) Y(count_accidents)"""
-                self.dataPlot(x_data_name=self.yChoice.GetString(self.yChoice.GetSelection()).lower(),
-                              x_data_field="STATE_ABBR",
-                              y_data_name=self.zChoice.GetString(self.zChoice.GetSelection()).lower(),
-                              y_data_field="State_id")
+                self.graphPlot(data_name="covid_cases")
 
         elif arcpy.da.Describe(self.yChoice.GetString(self.yChoice.GetSelection()).lower())["dataType"] == "TableView":
             if arcpy.Describe(self.xChoice.GetString(self.xChoice.GetSelection()).lower()).ShapeType == "Point":
                 arcpy.AddMessage("4")
 
                 """Z with Z.fields[0] as label"""
-                self.makeLabel(lyr_name=self.zChoice.GetString(self.zChoice.GetSelection()).lower(), field_pos=0)
+                self.makeLabel(lyr_name=self.zChoice.GetString(self.zChoice.GetSelection()).lower(),
+                               field_name="STATE_NAME")
 
                 """Z symbolized with Z.fields[3]"""
-                self.makeSymb(lyr_name=self.zChoice.GetString(self.zChoice.GetSelection()).lower(),
-                              field_pos=3,
-                              render="UniqueValueRenderer")
+                self.makeSymb(lyr_name=self.zChoice.GetString(self.zChoice.GetSelection()).lower())
 
             else:
                 arcpy.AddMessage("5")
@@ -216,121 +198,590 @@ class Pivot(wx.Frame):
             else:
                 arcpy.AddMessage("1")
 
-                """X with X.fields[3] as label"""
-                self.makeLabel(lyr_name=self.xChoice.GetString(self.xChoice.GetSelection()).lower(), field_pos=3)
         else:
             arcpy.AddWarning("This position is not supported.")
 
-        #
-        # self.xChoice.GetSelection()
-        # if self.x == 'Shape':
-        #     if self.data_warehouse[self.listFc.GetFirstSelected()][0][self.y].dtype.type == np.str_:
-        #
-        #         """ Show Y as Label """
-        #         definition = lyr.getDefinition('V2')
-        #         definition.labelClasses[0].expression = '$feature.' + self.y
-        #         definition.labelVisibility = True
-        #         lyr.setDefinition(definition)
-        #
-        #         """ Symbolize with Z"""
-        #         lyrsmb = lyr.symbology
-        #         lyrsmb.updateRenderer('GraduatedColorsRenderer')
-        #         lyrsmb.renderer.classificationField = self.z
-        #         lyrsmb.renderer.breakCount = 6
-        #         lyrsmb.renderer.classificationMethod = 'NaturalBreaks'
-        #         lyr.symbology = lyrsmb
-        #
-        # elif self.y == 'Shape':
-        #     if self.data_warehouse[self.listFc.GetFirstSelected()][0][self.x].dtype.type == np.int32:
-        #         arcpy.AddMessage("(3)")
-        #
-        #         """ Show X as Label """
-        #         definition = lyr.getDefinition('V2')
-        #         definition.labelClasses[0].expression = '$feature.' + self.x
-        #         definition.labelVisibility = True
-        #         lyr.setDefinition(definition)
-        #
-        #         """ Symbolize with Z"""
-        #         lyrsmb = lyr.symbology
-        #         lyrsmb.updateRenderer('UniqueValueRenderer')
-        #         lyrsmb.renderer.classificationField = self.z
-        #         lyrsmb.renderer.colorRamp = self.aprx.listColorRamps("Muted Pastels")[0]
-        #         lyr.symbology = lyrsmb
-        #
-        # elif self.z == 'Shape':
-        #     if self.data_warehouse[self.listFc.GetFirstSelected()][0][self.x].dtype.type == np.str_:
-        #         arcpy.AddMessage("(2)")
-        #
-        #         """ Symbolize with Z"""
-        #         lyrsmb = lyr.symbology
-        #         lyrsmb.updateRenderer('UniqueValueRenderer')
-        #         lyrsmb.renderer.classificationField = self.z
-        #         lyrsmb.renderer.colorRamp = self.aprx.listColorRamps("Basic Random")[0]
-        #         lyr.symbology = lyrsmb
-        #
-        #         """ Show X as Label """
-        #         definition = lyr.getDefinition('V2')
-        #         definition.labelClasses[0].expression = '$feature.' + self.x
-        #         definition.labelVisibility = True
-        #         lyr.setDefinition(definition)
-        #
-        #         """Plot X and Y"""
-        #         c = arcpy.Chart('Nombre d\'accidents par état.')
-        #         c.type = 'bar'
-        #         c.title = 'Nombre d\'accidents par état.'
-        #         c.xAxis.field = self.x
-        #         c.yAxis.field = self.y
-        #         c.xAxis.title = self.x
-        #         c.yAxis.title = self.y
-        #         c.addToLayer(lyr)
-        # else:
-        #     arcpy.AddMessage("This case is not supported")
-        #
+    def graphPlot(self, data_name):
+        # graph plots
+        df_temp = self.data_warehouse[data_name].groupby("Country_Region")["Confirmed",
+                                                                           "Deaths", "Recovred"].max().reset_index()
+        ind = np.arange(df_temp.Country_Region.count())  # the x locations for the groups
 
-    def makeLabel(self, lyr_name, field_pos):
+        f, ax = plt.subplots(figsize=(20, 5))
+
+        p1 = ax.bar(ind - 0.20, df_temp.Confirmed, 0.20, color=(0.95, 0.62, 0.07, 1))
+        p2 = ax.bar(ind, df_temp.Recovred, 0.20, color=(0.12, 0.52, 0.29, 1))
+        p3 = ax.bar(ind + 0.20, df_temp.Deaths, 0.20, color=(1, 0, 0, 1))
+
+        ax.set_title('Confirmed, Recovred and Deaths numbers by Country_Region.')
+        plt.xticks(ind, df_temp.Country_Region)
+        plt.xticks(rotation=90)
+        ax.set_yscale('symlog')
+        ax.legend((p1[0], p2[0], p3[0]), ('Confirmed', 'Recovred', 'Deaths'))
+
+        plt.show()
+
+    def stackPlot(self, data_name):
+        df_temp = self.data_warehouse[data_name].groupby("Date")[
+            "Confirmed", "Deaths", "Recovred"].max().reset_index()
+        arcpy.AddMessage(df_temp)
+        fig, ax = plt.subplots()
+        plt.grid()
+        ax.stackplot(df_temp.Date.values, df_temp.Deaths.values, df_temp.Recovred.values, df_temp.Confirmed.values,
+                     labels=["Deaths", "Recovred", "Confirmed"],
+                     colors=[(1, 0, 0, 1), (0.12, 0.52, 0.29, 1), (0.95, 0.62, 0.07, 1)])
+        ax.legend(loc=2)
+        plt.title("Confirmed, Deaths and Recovred cases stack by Date.")
+        plt.xticks(rotation=70)
+        plt.show()
+
+    def makeLabel(self, lyr_name, field_name):
         lyr = self.lyr_dict[lyr_name]
         definition = lyr.getDefinition('V2')
-        definition.labelClasses[0].expression = '$feature.' + \
-                                                self.data_warehouse[lyr.name.lower()].columns[field_pos]
+        definition.labelClasses[0].expression = '$feature.' + field_name
+        definition.labelClasses[0].maplexLabelPlacementProperties.enablePolygonFixedPosition = True
         definition.labelVisibility = True
         lyr.setDefinition(definition)
         return
 
-    def makeSymb(self, lyr_name, field_pos, render='SimpleRenderer'):
-        # 'UniqueValueRenderer'  'GraduatedColorsRenderer' 'SimpleRenderer'
-        lyr = self.lyr_dict[lyr_name]
-        lyrsmb = lyr.symbology
-        lyrsmb.updateRenderer(render)
-        lyrsmb.renderer.classificationField = self.data_warehouse[lyr.name.lower()].columns[field_pos]
-        if render == 'GraduatedColorsRenderer':
-            lyrsmb.renderer.classificationMethod = 'NaturalBreaks'
-        else:
-            lyrsmb.renderer.colorRamp = self.aprx.listColorRamps("Basic Random")[0]
-        lyr.symbology = lyrsmb
+    def makeSymb(self, lyr_name):
+        try:
+            lyr = self.lyr_dict[lyr_name]
+            lyrsmb = lyr.symbology
+            lyrsmb.renderer = {
+                "type": "CIMClassBreaksRenderer",
+                "barrierWeight": "High",
+                "breaks": [
+                    {
+                        "type": "CIMClassBreak",
+                        "label": "1 case",
+                        "patch": "Default",
+                        "symbol": {
+                            "type": "CIMSymbolReference",
+                            "symbol": {
+                                "type": "CIMPolygonSymbol",
+                                "symbolLayers": [
+                                    {
+                                        "type": "CIMSolidStroke",
+                                        "enable": true,
+                                        "capStyle": "Round",
+                                        "joinStyle": "Round",
+                                        "lineStyle3D": "Strip",
+                                        "miterLimit": 10,
+                                        "width": 0.69999999999999996,
+                                        "color": {
+                                            "type": "CIMRGBColor",
+                                            "values": [
+                                                110,
+                                                110,
+                                                110,
+                                                100
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "type": "CIMSolidFill",
+                                        "enable": true,
+                                        "color": {
+                                            "type": "CIMHSVColor",
+                                            "values": [
+                                                60,
+                                                100,
+                                                96,
+                                                100
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        "upperBound": 1
+                    },
+                    {
+                        "type": "CIMClassBreak",
+                        "label": "2 - 4 cases",
+                        "patch": "Default",
+                        "symbol": {
+                            "type": "CIMSymbolReference",
+                            "symbol": {
+                                "type": "CIMPolygonSymbol",
+                                "symbolLayers": [
+                                    {
+                                        "type": "CIMSolidStroke",
+                                        "enable": true,
+                                        "capStyle": "Round",
+                                        "joinStyle": "Round",
+                                        "lineStyle3D": "Strip",
+                                        "miterLimit": 10,
+                                        "width": 0.69999999999999996,
+                                        "color": {
+                                            "type": "CIMRGBColor",
+                                            "values": [
+                                                110,
+                                                110,
+                                                110,
+                                                100
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "type": "CIMSolidFill",
+                                        "enable": true,
+                                        "color": {
+                                            "type": "CIMHSVColor",
+                                            "values": [
+                                                51.43,
+                                                100,
+                                                96,
+                                                100
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        "upperBound": 4
+                    },
+                    {
+                        "type": "CIMClassBreak",
+                        "label": "5 - 9 cases",
+                        "patch": "Default",
+                        "symbol": {
+                            "type": "CIMSymbolReference",
+                            "symbol": {
+                                "type": "CIMPolygonSymbol",
+                                "symbolLayers": [
+                                    {
+                                        "type": "CIMSolidStroke",
+                                        "enable": true,
+                                        "capStyle": "Round",
+                                        "joinStyle": "Round",
+                                        "lineStyle3D": "Strip",
+                                        "miterLimit": 10,
+                                        "width": 0.69999999999999996,
+                                        "color": {
+                                            "type": "CIMRGBColor",
+                                            "values": [
+                                                110,
+                                                110,
+                                                110,
+                                                100
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "type": "CIMSolidFill",
+                                        "enable": true,
+                                        "color": {
+                                            "type": "CIMHSVColor",
+                                            "values": [
+                                                42.859999999999999,
+                                                100,
+                                                96,
+                                                100
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        "upperBound": 9
+                    },
+                    {
+                        "type": "CIMClassBreak",
+                        "label": "10 - 16 cases",
+                        "patch": "Default",
+                        "symbol": {
+                            "type": "CIMSymbolReference",
+                            "symbol": {
+                                "type": "CIMPolygonSymbol",
+                                "symbolLayers": [
+                                    {
+                                        "type": "CIMSolidStroke",
+                                        "enable": true,
+                                        "capStyle": "Round",
+                                        "joinStyle": "Round",
+                                        "lineStyle3D": "Strip",
+                                        "miterLimit": 10,
+                                        "width": 0.69999999999999996,
+                                        "color": {
+                                            "type": "CIMRGBColor",
+                                            "values": [
+                                                110,
+                                                110,
+                                                110,
+                                                100
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "type": "CIMSolidFill",
+                                        "enable": true,
+                                        "color": {
+                                            "type": "CIMHSVColor",
+                                            "values": [
+                                                34.280000000000001,
+                                                100,
+                                                96,
+                                                100
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        "upperBound": 16
+                    },
+                    {
+                        "type": "CIMClassBreak",
+                        "label": "17 - 28 cases",
+                        "patch": "Default",
+                        "symbol": {
+                            "type": "CIMSymbolReference",
+                            "symbol": {
+                                "type": "CIMPolygonSymbol",
+                                "symbolLayers": [
+                                    {
+                                        "type": "CIMSolidStroke",
+                                        "enable": true,
+                                        "capStyle": "Round",
+                                        "joinStyle": "Round",
+                                        "lineStyle3D": "Strip",
+                                        "miterLimit": 10,
+                                        "width": 0.69999999999999996,
+                                        "color": {
+                                            "type": "CIMRGBColor",
+                                            "values": [
+                                                110,
+                                                110,
+                                                110,
+                                                100
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "type": "CIMSolidFill",
+                                        "enable": true,
+                                        "color": {
+                                            "type": "CIMHSVColor",
+                                            "values": [
+                                                25.719999999999999,
+                                                100,
+                                                96,
+                                                100
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        "upperBound": 28
+                    },
+                    {
+                        "type": "CIMClassBreak",
+                        "label": "29 - 61 cases",
+                        "patch": "Default",
+                        "symbol": {
+                            "type": "CIMSymbolReference",
+                            "symbol": {
+                                "type": "CIMPolygonSymbol",
+                                "symbolLayers": [
+                                    {
+                                        "type": "CIMSolidStroke",
+                                        "enable": true,
+                                        "capStyle": "Round",
+                                        "joinStyle": "Round",
+                                        "lineStyle3D": "Strip",
+                                        "miterLimit": 10,
+                                        "width": 0.69999999999999996,
+                                        "color": {
+                                            "type": "CIMRGBColor",
+                                            "values": [
+                                                110,
+                                                110,
+                                                110,
+                                                100
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "type": "CIMSolidFill",
+                                        "enable": true,
+                                        "color": {
+                                            "type": "CIMHSVColor",
+                                            "values": [
+                                                17.140000000000001,
+                                                100,
+                                                96,
+                                                100
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        "upperBound": 61
+                    },
+                    {
+                        "type": "CIMClassBreak",
+                        "label": "62 - 761 cases",
+                        "patch": "Default",
+                        "symbol": {
+                            "type": "CIMSymbolReference",
+                            "symbol": {
+                                "type": "CIMPolygonSymbol",
+                                "symbolLayers": [
+                                    {
+                                        "type": "CIMSolidStroke",
+                                        "enable": true,
+                                        "capStyle": "Round",
+                                        "joinStyle": "Round",
+                                        "lineStyle3D": "Strip",
+                                        "miterLimit": 10,
+                                        "width": 0.69999999999999996,
+                                        "color": {
+                                            "type": "CIMRGBColor",
+                                            "values": [
+                                                110,
+                                                110,
+                                                110,
+                                                100
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "type": "CIMSolidFill",
+                                        "enable": true,
+                                        "color": {
+                                            "type": "CIMHSVColor",
+                                            "values": [
+                                                8.5700000000000003,
+                                                100,
+                                                96,
+                                                100
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        "upperBound": 761
+                    },
+                    {
+                        "type": "CIMClassBreak",
+                        "label": "762 - 66907 cases",
+                        "patch": "Default",
+                        "symbol": {
+                            "type": "CIMSymbolReference",
+                            "symbol": {
+                                "type": "CIMPolygonSymbol",
+                                "symbolLayers": [
+                                    {
+                                        "type": "CIMSolidStroke",
+                                        "enable": true,
+                                        "capStyle": "Round",
+                                        "joinStyle": "Round",
+                                        "lineStyle3D": "Strip",
+                                        "miterLimit": 10,
+                                        "width": 0.69999999999999996,
+                                        "color": {
+                                            "type": "CIMRGBColor",
+                                            "values": [
+                                                110,
+                                                110,
+                                                110,
+                                                100
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "type": "CIMSolidFill",
+                                        "enable": true,
+                                        "color": {
+                                            "type": "CIMHSVColor",
+                                            "values": [
+                                                0,
+                                                100,
+                                                96,
+                                                100
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        "upperBound": 66907
+                    }
+                ],
+                "classBreakType": "GraduatedColor",
+                "classificationMethod": "Quantile",
+                "colorRamp": {
+                    "type": "CIMPolarContinuousColorRamp",
+                    "colorSpace": {
+                        "type": "CIMICCColorSpace",
+                        "url": "Default RGB"
+                    },
+                    "fromColor": {
+                        "type": "CIMHSVColor",
+                        "values": [
+                            60,
+                            100,
+                            96,
+                            100
+                        ]
+                    },
+                    "toColor": {
+                        "type": "CIMHSVColor",
+                        "values": [
+                            0,
+                            100,
+                            96,
+                            100
+                        ]
+                    },
+                    "interpolationSpace": "HSV",
+                    "polarDirection": "Auto"
+                },
+                "field": "Confirmed",
+                "minimumBreak": 1,
+                "numberFormat": {
+                    "type": "CIMNumericFormat",
+                    "alignmentOption": "esriAlignLeft",
+                    "alignmentWidth": 0,
+                    "roundingOption": "esriRoundNumberOfDecimals",
+                    "roundingValue": 6,
+                    "zeroPad": true
+                },
+                "showInAscendingOrder": true,
+                "heading": "Confirmed",
+                "sampleSize": 10000,
+                "defaultSymbolPatch": "Default",
+                "defaultSymbol": {
+                    "type": "CIMSymbolReference",
+                    "symbol": {
+                        "type": "CIMPolygonSymbol",
+                        "symbolLayers": [
+                            {
+                                "type": "CIMSolidStroke",
+                                "enable": true,
+                                "capStyle": "Round",
+                                "joinStyle": "Round",
+                                "lineStyle3D": "Strip",
+                                "miterLimit": 10,
+                                "width": 0.69999999999999996,
+                                "color": {
+                                    "type": "CIMRGBColor",
+                                    "values": [
+                                        110,
+                                        110,
+                                        110,
+                                        100
+                                    ]
+                                }
+                            },
+                            {
+                                "type": "CIMSolidFill",
+                                "enable": true,
+                                "color": {
+                                    "type": "CIMRGBColor",
+                                    "values": [
+                                        130,
+                                        130,
+                                        130,
+                                        100
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                },
+                "defaultLabel": "<out of range>",
+                "polygonSymbolColorTarget": "Fill",
+                "normalizationType": "Nothing",
+                "exclusionLabel": "<excluded>",
+                "exclusionSymbol": {
+                    "type": "CIMSymbolReference",
+                    "symbol": {
+                        "type": "CIMPolygonSymbol",
+                        "symbolLayers": [
+                            {
+                                "type": "CIMSolidStroke",
+                                "enable": true,
+                                "capStyle": "Round",
+                                "joinStyle": "Round",
+                                "lineStyle3D": "Strip",
+                                "miterLimit": 10,
+                                "width": 0.69999999999999996,
+                                "color": {
+                                    "type": "CIMRGBColor",
+                                    "values": [
+                                        110,
+                                        110,
+                                        110,
+                                        100
+                                    ]
+                                }
+                            },
+                            {
+                                "type": "CIMSolidFill",
+                                "enable": true,
+                                "color": {
+                                    "type": "CIMRGBColor",
+                                    "values": [
+                                        255,
+                                        0,
+                                        0,
+                                        100
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                },
+                "useExclusionSymbol": false,
+                "exclusionSymbolPatch": "Default"
+            }
+        except Exception as e:
+            arcpy.AddError(str(e))
         return
 
-    def setTimeCursor(self, lyr_name, data_table_name, data_join_field):
-        # data = self.data_warehouse[data_name].set_index(data_field).join(self.data_warehouse[date_table_name]) \
-        #     .set_index(date_field).groupby(pd.Grouper(freq='Y')).count()
-        # arcpy.AddMessage(data)
-        # lyr = self.lyr_dict[lyr_name]
-        # definition = lyr.getDefinition('V2')
-        # definition.featureTable.timeFields.startTimeField = date_table_name + "." + time_field
-        # # definition.featureTable.timeFields.timeValueFormat =
-        # definition.featureTable.timeDefinition.useTime = True
-        # lyr.setDefinition(definition)
+    def setTimeCursor(self, lyr_name, time_field):
+        try:
+            lyr = self.lyr_dict[lyr_name]
+            definition = lyr.getDefinition('V2')
+
+            definition.featureTable.timeFields = {
+                "type": "CIMTimeTableDefinition",
+                "startTimeField": time_field,
+                "timeValueFormat": "yyyy-MM-dd HH:mm:ss"
+            }
+
+            definition.featureTable.timeDefinition = {
+                "type": "CIMTimeDataDefinition",
+                "useTime": True,
+                "customTimeExtent": {
+                    "type": "TimeExtent",
+                    "start": 1579737600000,
+                    "end": 1583107200000,
+                    "empty": False
+                }
+            }
+
+            lyr.setDefinition(definition)
+            self.active_map.addLayer(lyr, 'TOP')
+            self.active_map.removeLayer(lyr)
+
+        except Exception as e:
+            arcpy.AddError(str(e))
         return
 
     def timePlot(self, data_name, data_field, date_table_name, date_field, freq='M'):
-        data = self.data_warehouse[data_name].set_index(data_field).join(self.data_warehouse[date_table_name]) \
-            .set_index(date_field).groupby(pd.Grouper(freq=freq)).count()
-        g = self.data_warehouse["us_accidents_xy"].set_index("Date_id").join(self.data_warehouse["us_time"])\
-            .set_index("State_id").join(self.data_warehouse["us_states"])\
-            .groupby(["STATE_NAME", pd.Grouper(freq='M', key="Date")]).count()
-        arcpy.AddMessage(g)
-        g.spatial.to_table("test")
-        # h = g.set_index("State_id").join(self.data_warehouse["us_states"])
-        # arcpy.AddMessage(h)
+        try:
+            data = self.data_warehouse[data_name].set_index(data_field).join(self.data_warehouse[date_table_name]) \
+                .set_index(date_field).groupby(pd.Grouper(freq=freq)).count()
+        except Exception as e:
+            arcpy.AddError(str(e))
+
         fig, axes = plt.subplots(figsize=(8, 4))
         axes.plot(data.index, data.values, '-')
         axes.set_xlabel("Time")
@@ -340,10 +791,14 @@ class Pivot(wx.Frame):
         return
 
     def dataPlot(self, x_data_name, x_data_field, y_data_name, y_data_field):
-        data = self.data_warehouse[x_data_name].merge(self.data_warehouse[y_data_name],
-                                                      left_index=True,
-                                                      right_on=y_data_field,
-                                                      how='outer').groupby([x_data_field]).count()[y_data_field]
+        try:
+            data = self.data_warehouse[x_data_name].merge(self.data_warehouse[y_data_name],
+                                                          left_index=True,
+                                                          right_on=y_data_field,
+                                                          how='outer').groupby([x_data_field]).count()[y_data_field]
+        except Exception as e:
+            arcpy.AddError(str(e))
+
         fig, axes = plt.subplots(figsize=(8, 4))
         axes.bar(data.index, data.values)
         axes.set_xlabel(x_data_name)
@@ -355,10 +810,3 @@ class Pivot(wx.Frame):
 app = wx.App()
 Pivot(None, title='Pivot')
 app.MainLoop()
-
-
-# FindHotSpots(point_layer, output_name, {bin_size}, {neighborhood_size})
-#
-# arcpy.Describe('us_states').ShapeType
-# 'Polygon'
-# list(d.keys())[0]

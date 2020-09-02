@@ -1,0 +1,381 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="fr" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="fr" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Pivot &mdash; Documentation ArcGIS Pro Pivot V1.0</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+        <script src="_static/translations.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Recherche" href="search.html" />
+    <link rel="prev" title="Welcome to ArcGIS Pro Pivot’s documentation!" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> ArcGIS Pro Pivot
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Pivot</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ArcGIS Pro Pivot</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Pivot</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/pivot.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-Pivot">
+<span id="pivot"></span><h1>Pivot<a class="headerlink" href="#module-Pivot" title="Lien permanent vers ce titre">¶</a></h1>
+<p>Tool : Pivot, Source Name : Pivot.py, Author: M’hamed Bendenia.</p>
+<dl class="py class">
+<dt id="Pivot.Pivot">
+<em class="property">class </em><code class="sig-prename descclassname">Pivot.</code><code class="sig-name descname">Pivot</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">parent</span></em>, <em class="sig-param"><span class="n">title</span></em><span class="sig-paren">)</span><a class="headerlink" href="#Pivot.Pivot" title="Lien permanent vers cette définition">¶</a></dt>
+<dd><p>Bases : <code class="xref py py-class docutils literal notranslate"><span class="pre">wx._core.Frame</span></code></p>
+<p>A powerful hypercube rotation tool for ArcGIS Pro.</p>
+<dl class="py method">
+<dt id="Pivot.Pivot.InitUI">
+<code class="sig-name descname">InitUI</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Pivot.Pivot.InitUI" title="Lien permanent vers cette définition">¶</a></dt>
+<dd><p>Display the user interface and load data.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="Pivot.Pivot.axes">
+<code class="sig-name descname">axes</code><em class="property"> = None</em><a class="headerlink" href="#Pivot.Pivot.axes" title="Lien permanent vers cette définition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="Pivot.Pivot.bmp">
+<code class="sig-name descname">bmp</code><em class="property"> = None</em><a class="headerlink" href="#Pivot.Pivot.bmp" title="Lien permanent vers cette définition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="Pivot.Pivot.data_warehouse">
+<code class="sig-name descname">data_warehouse</code><em class="property"> = {}</em><a class="headerlink" href="#Pivot.Pivot.data_warehouse" title="Lien permanent vers cette définition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="Pivot.Pivot.fact_table">
+<code class="sig-name descname">fact_table</code><em class="property"> = None</em><a class="headerlink" href="#Pivot.Pivot.fact_table" title="Lien permanent vers cette définition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="Pivot.Pivot.feature_class">
+<code class="sig-name descname">feature_class</code><em class="property"> = None</em><a class="headerlink" href="#Pivot.Pivot.feature_class" title="Lien permanent vers cette définition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="Pivot.Pivot.graphPlot">
+<code class="sig-name descname">graphPlot</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data_name</span></em><span class="sig-paren">)</span><a class="headerlink" href="#Pivot.Pivot.graphPlot" title="Lien permanent vers cette définition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="Pivot.Pivot.hide">
+<code class="sig-name descname">hide</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lyr_name</span></em><span class="sig-paren">)</span><a class="headerlink" href="#Pivot.Pivot.hide" title="Lien permanent vers cette définition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="Pivot.Pivot.inc">
+<code class="sig-name descname">inc</code><em class="property"> = 0</em><a class="headerlink" href="#Pivot.Pivot.inc" title="Lien permanent vers cette définition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="Pivot.Pivot.linePlot">
+<code class="sig-name descname">linePlot</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data_name</span></em><span class="sig-paren">)</span><a class="headerlink" href="#Pivot.Pivot.linePlot" title="Lien permanent vers cette définition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="Pivot.Pivot.lyr_dict">
+<code class="sig-name descname">lyr_dict</code><em class="property"> = {}</em><a class="headerlink" href="#Pivot.Pivot.lyr_dict" title="Lien permanent vers cette définition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="Pivot.Pivot.makeLabel">
+<code class="sig-name descname">makeLabel</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lyr_name</span></em>, <em class="sig-param"><span class="n">field_name</span></em><span class="sig-paren">)</span><a class="headerlink" href="#Pivot.Pivot.makeLabel" title="Lien permanent vers cette définition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="Pivot.Pivot.makePointSymb">
+<code class="sig-name descname">makePointSymb</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lyr_name</span></em><span class="sig-paren">)</span><a class="headerlink" href="#Pivot.Pivot.makePointSymb" title="Lien permanent vers cette définition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="Pivot.Pivot.makeSymb">
+<code class="sig-name descname">makeSymb</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lyr_name</span></em><span class="sig-paren">)</span><a class="headerlink" href="#Pivot.Pivot.makeSymb" title="Lien permanent vers cette définition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="Pivot.Pivot.makeSymb2">
+<code class="sig-name descname">makeSymb2</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lyr_name</span></em><span class="sig-paren">)</span><a class="headerlink" href="#Pivot.Pivot.makeSymb2" title="Lien permanent vers cette définition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="Pivot.Pivot.makeSymb3">
+<code class="sig-name descname">makeSymb3</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lyr_name</span></em>, <em class="sig-param"><span class="n">time_field</span></em><span class="sig-paren">)</span><a class="headerlink" href="#Pivot.Pivot.makeSymb3" title="Lien permanent vers cette définition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="Pivot.Pivot.onAxesClick">
+<code class="sig-name descname">onAxesClick</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">event</span></em><span class="sig-paren">)</span><a class="headerlink" href="#Pivot.Pivot.onAxesClick" title="Lien permanent vers cette définition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="Pivot.Pivot.onXChoiceClick">
+<code class="sig-name descname">onXChoiceClick</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">event</span></em><span class="sig-paren">)</span><a class="headerlink" href="#Pivot.Pivot.onXChoiceClick" title="Lien permanent vers cette définition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="Pivot.Pivot.onYChoiceClick">
+<code class="sig-name descname">onYChoiceClick</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">event</span></em><span class="sig-paren">)</span><a class="headerlink" href="#Pivot.Pivot.onYChoiceClick" title="Lien permanent vers cette définition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="Pivot.Pivot.onZChoiceClick">
+<code class="sig-name descname">onZChoiceClick</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">event</span></em><span class="sig-paren">)</span><a class="headerlink" href="#Pivot.Pivot.onZChoiceClick" title="Lien permanent vers cette définition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="Pivot.Pivot.panel">
+<code class="sig-name descname">panel</code><em class="property"> = None</em><a class="headerlink" href="#Pivot.Pivot.panel" title="Lien permanent vers cette définition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="Pivot.Pivot.pivotRun">
+<code class="sig-name descname">pivotRun</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Pivot.Pivot.pivotRun" title="Lien permanent vers cette définition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="Pivot.Pivot.rateLinePlot">
+<code class="sig-name descname">rateLinePlot</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data_name</span></em><span class="sig-paren">)</span><a class="headerlink" href="#Pivot.Pivot.rateLinePlot" title="Lien permanent vers cette définition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="Pivot.Pivot.reset_lyrs">
+<code class="sig-name descname">reset_lyrs</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#Pivot.Pivot.reset_lyrs" title="Lien permanent vers cette définition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="Pivot.Pivot.setTimeCursor">
+<code class="sig-name descname">setTimeCursor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lyr_name</span></em>, <em class="sig-param"><span class="n">time_field</span></em><span class="sig-paren">)</span><a class="headerlink" href="#Pivot.Pivot.setTimeCursor" title="Lien permanent vers cette définition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="Pivot.Pivot.sizer">
+<code class="sig-name descname">sizer</code><em class="property"> = &lt;wx._core.GridBagSizer object&gt;</em><a class="headerlink" href="#Pivot.Pivot.sizer" title="Lien permanent vers cette définition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="Pivot.Pivot.stackPlot">
+<code class="sig-name descname">stackPlot</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data_name</span></em><span class="sig-paren">)</span><a class="headerlink" href="#Pivot.Pivot.stackPlot" title="Lien permanent vers cette définition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="Pivot.Pivot.workfolder">
+<code class="sig-name descname">workfolder</code><em class="property"> = ''</em><a class="headerlink" href="#Pivot.Pivot.workfolder" title="Lien permanent vers cette définition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="Pivot.Pivot.x">
+<code class="sig-name descname">x</code><em class="property"> = None</em><a class="headerlink" href="#Pivot.Pivot.x" title="Lien permanent vers cette définition">¶</a></dt>
+<dd><p>Define default GDB if parameter is Null</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="Pivot.Pivot.xChoice">
+<code class="sig-name descname">xChoice</code><em class="property"> = None</em><a class="headerlink" href="#Pivot.Pivot.xChoice" title="Lien permanent vers cette définition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="Pivot.Pivot.y">
+<code class="sig-name descname">y</code><em class="property"> = None</em><a class="headerlink" href="#Pivot.Pivot.y" title="Lien permanent vers cette définition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="Pivot.Pivot.yChoice">
+<code class="sig-name descname">yChoice</code><em class="property"> = None</em><a class="headerlink" href="#Pivot.Pivot.yChoice" title="Lien permanent vers cette définition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="Pivot.Pivot.z">
+<code class="sig-name descname">z</code><em class="property"> = None</em><a class="headerlink" href="#Pivot.Pivot.z" title="Lien permanent vers cette définition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="Pivot.Pivot.zChoice">
+<code class="sig-name descname">zChoice</code><em class="property"> = None</em><a class="headerlink" href="#Pivot.Pivot.zChoice" title="Lien permanent vers cette définition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to ArcGIS Pro Pivot’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, M&#39;hamed Bendenia
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -1,9 +1,5 @@
 """
--------------------------------------------------------------------------
-    Tool:               Pivot
-    Source Name:        Pivot.py
-    Author:             M'hamed Bendenia.
--------------------------------------------------------------------------
+    Tool : Pivot, Source Name : Pivot.py, Author: M'hamed Bendenia.
 """
 
 from arcgis.features import GeoAccessor
@@ -18,30 +14,29 @@ import math
 
 
 class Pivot(wx.Frame):
+    """ A powerful hypercube rotation tool for ArcGIS Pro. """
+
     workspace = None  # default gdb path
     workfolder = None  # default gdb folder path
     aprx = arcpy.mp.ArcGISProject("CURRENT")  # current project
     active_map = None  # current map
 
     data_warehouse = {}
-    Fact = None
+    fact_table = None
     sizer = wx.GridBagSizer(0, 0)
     panel = None
     axes = None
     bmp = None
     xChoice = yChoice = zChoice = None
-    Fc = None
+    feature_class = None
     inc = 0
 
     x = y = z = None
 
-    """Setup reference Scale"""
-    aprx.activeMap.referenceScale = 59467124.861567564
-
     """Define default GDB if parameter is Null"""
     if len(arcpy.GetParameterAsText(0)) == 0:
         workspace = arcpy.env.workspace
-        workfolder = os.path.dirname(workspace)
+        workfolder = os.path.dirname(str(workspace))
     else:
         workspace = arcpy.GetParameter(0)
         arcpy.env.workspace = workspace
@@ -67,7 +62,9 @@ class Pivot(wx.Frame):
         self.Show()
 
     def InitUI(self):
-
+        """
+        Display the user interface and load data.
+        """
         self.panel = wx.Panel(self)
         self.local = wx.Locale(wx.LANGUAGE_DEFAULT)
 
@@ -1008,7 +1005,7 @@ class Pivot(wx.Frame):
                                 ]
                             }
                         },
-                        "upperBound": 3000000
+                        "upperBound": 4620444
                     }
                 ],
                 "classBreakType": "GraduatedColor",
@@ -2041,7 +2038,7 @@ class Pivot(wx.Frame):
                                 "angleAlignment": "Display"
                             }
                         },
-                        "upperBound": 3000000
+                        "upperBound": 4620444
                     }
                 ],
                 "classBreakType": "GraduatedColor",
@@ -3278,7 +3275,7 @@ class Pivot(wx.Frame):
                                 ]
                             }
                         },
-                        "upperBound": 3000000
+                        "upperBound": 4620444
                     }
                 ],
                 "classBreakType": "GraduatedColor",

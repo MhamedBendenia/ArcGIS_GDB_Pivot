@@ -16,45 +16,48 @@ import math
 class Pivot(wx.Frame):
     """ A powerful hypercube rotation tool for ArcGIS Pro. """
 
-    workspace = None  # default gdb path
-    workfolder = None  # default gdb folder path
-    aprx = arcpy.mp.ArcGISProject("CURRENT")  # current project
-    active_map = None  # current map
+    workspace = None  #: Default gdb path
+    workfolder = None  #: Default gdb folder path
+    aprx = arcpy.mp.ArcGISProject("CURRENT")  #: Current project
+    active_map = None  #: Current map
+    data_warehouse = {}  #: Data Warehouse
+    fact_table = None  #: Fact table
+    sizer = wx.GridBagSizer(0, 0)  #: Layer sizer
+    panel = None  #: Pivot panel
+    axes = None  #: Pivot axes
+    bmp = None  #: Bitmap image axes
+    xChoice = yChoice = zChoice = None  #: Dimension choise
+    feature_class = None  #: ArcGIS Pro feature class
+    x = y = z = None  #: Bitmap axe
 
-    data_warehouse = {}
-    fact_table = None
-    sizer = wx.GridBagSizer(0, 0)
-    panel = None
-    axes = None
-    bmp = None
-    xChoice = yChoice = zChoice = None
-    feature_class = None
-    inc = 0
-
-    x = y = z = None
-
-    """Define default GDB if parameter is Null"""
+    # Define default GDB if parameter is Null
     if len(arcpy.GetParameterAsText(0)) == 0:
         workspace = arcpy.env.workspace
-        workfolder = os.path.dirname(str(workspace))
+        workfolder = os.path.dirname(workspace)
     else:
         workspace = arcpy.GetParameter(0)
         arcpy.env.workspace = workspace
         workfolder = os.path.dirname(arcpy.env.workspace)
 
-    """Define current map if parameter is Null"""
+    # Define current map if parameter is Null
     if len(arcpy.GetParameterAsText(1)) == 0:
         active_map = aprx.listMaps()[0]
     else:
         active_map = aprx.listMaps(arcpy.GetParameter(1))[0]
 
-    """Setup reference Scale"""
+    # Setup reference Scale
     active_map.referenceScale = 59467124.861567564
 
-    """Putting all layers in a dict"""
+    # Putting all layers in a dict
     lyr_dict = {lyr.name.lower(): lyr for lyr in active_map.listLayers()}
 
     def __init__(self, parent, title):
+        """
+        Initialise the Pivot interface
+
+        :param parent: The main Window
+        :param title: Window title
+        """
         super(Pivot, self).__init__(parent, title=title, size=wx.Size(410, 250),
                                     style=wx.STAY_ON_TOP ^ wx.DEFAULT_FRAME_STYLE ^ wx.RESIZE_BORDER ^ wx.MAXIMIZE_BOX)
         self.InitUI()
@@ -68,13 +71,13 @@ class Pivot(wx.Frame):
         self.panel = wx.Panel(self)
         self.local = wx.Locale(wx.LANGUAGE_DEFAULT)
 
-        """Axes image"""
+        # Axes image
         self.bmp = wx.Bitmap(str(pathlib.Path().absolute().joinpath(r"Scripts\Axes.png")), wx.BITMAP_TYPE_PNG)
         self.axes = wx.StaticBitmap(self.panel, wx.ID_ANY, self.bmp, wx.DefaultPosition, (120, 120), 0)
         self.axes.Bind(wx.EVT_LEFT_DOWN, self.onAxesClick)
         self.sizer.Add(self.axes, pos=(1, 1), flag=wx.ALL, border=5)
 
-        """The lists of choices"""
+        # The lists of choices
         self.xChoice = wx.Choice(self.panel, wx.ID_ANY, wx.DefaultPosition, size=wx.Size(120, 25), style=0)
         self.xChoice.Bind(wx.EVT_CHOICE, self.onXChoiceClick)
         self.sizer.Add(self.xChoice, pos=(2, 2), flag=wx.ALL, border=5)
@@ -87,7 +90,7 @@ class Pivot(wx.Frame):
         self.zChoice.Bind(wx.EVT_CHOICE, self.onZChoiceClick)
         self.sizer.Add(self.zChoice, pos=(2, 0), flag=wx.ALL, border=5)
 
-        """Filling the DW and the lists by feature classes"""
+        # Filling the DW and the lists by feature classes
         for fc in arcpy.ListFeatureClasses():
             try:
                 self.data_warehouse[fc.title().lower()] = pd.DataFrame.spatial.from_featureclass(fc)
@@ -97,7 +100,7 @@ class Pivot(wx.Frame):
             except Exception as e:
                 arcpy.AddError(str(e))
 
-        """Filling the DW and the lists by tables"""
+        # Filling the DW and the lists by tables
         for tb in arcpy.ListTables():
             try:
                 self.data_warehouse[tb.title().lower()] = pd.DataFrame.spatial.from_table(tb)
@@ -109,6 +112,11 @@ class Pivot(wx.Frame):
         self.panel.SetSizerAndFit(self.sizer)
 
     def onAxesClick(self, event):
+        """
+        Bitmap click event listner
+
+        :param event: The mouse click event
+        """
         x, y = event.GetPosition()
         if 91 < x < 106 and 88 < y < 104:
             self.bmp = wx.Bitmap(str(pathlib.Path().absolute().joinpath(r"Scripts\X.png")), wx.BITMAP_TYPE_PNG)
@@ -143,24 +151,42 @@ class Pivot(wx.Frame):
         return
 
     def onXChoiceClick(self, event):
+        """
+        X combobox click event listner
+
+        :param event: The mouse click event
+        """
         if self.yChoice.GetSelection() == wx.NOT_FOUND or self.zChoice.GetSelection() == wx.NOT_FOUND:
             return
         else:
             self.pivotRun()
 
     def onYChoiceClick(self, event):
+        """
+        Y combobox click event listner
+
+        :param event: The mouse click event
+        """
         if self.zChoice.GetSelection() == wx.NOT_FOUND or self.zChoice.GetSelection() == wx.NOT_FOUND:
             return
         else:
             self.pivotRun()
 
     def onZChoiceClick(self, event):
+        """
+        Z combobox click event listner
+
+        :param event: The mouse click event
+        """
         if self.yChoice.GetSelection() == wx.NOT_FOUND or self.xChoice.GetSelection() == wx.NOT_FOUND:
             return
         else:
             self.pivotRun()
 
     def pivotRun(self):
+        """
+        Start the Pivot operation
+        """
         self.reset_lyrs()
 
         arcpy.AddMessage("---------------------")
@@ -173,7 +199,7 @@ class Pivot(wx.Frame):
                                field_name="Country_Re")
 
                 """Z symbolized with Z.fields[3]"""
-                self.makeSymb(lyr_name=self.zChoice.GetString(self.zChoice.GetSelection()).lower())
+                self.make_class_breaks_symb(lyr_name=self.zChoice.GetString(self.zChoice.GetSelection()).lower())
 
                 """Plot X(time) Y(point)"""
                 self.stackPlot(data_name="covid_cases")
@@ -189,7 +215,7 @@ class Pivot(wx.Frame):
                                    time_field="Date")
 
                 """Y symbolized with Y.fields[3]"""
-                self.makeSymb(lyr_name=self.xChoice.GetString(self.xChoice.GetSelection()).lower())
+                self.make_class_breaks_symb(lyr_name=self.xChoice.GetString(self.xChoice.GetSelection()).lower())
 
                 """Plot X(states) Y(count_accidents)"""
                 self.graphPlot(data_name=self.zChoice.GetString(self.zChoice.GetSelection()).lower())
@@ -210,10 +236,10 @@ class Pivot(wx.Frame):
             else:
                 arcpy.AddMessage("2")
 
-                self.makeSymb2(lyr_name=self.zChoice.GetString(self.zChoice.GetSelection()).lower())
+                self.make_simple_symb(lyr_name=self.zChoice.GetString(self.zChoice.GetSelection()).lower())
                 self.setTimeCursor(lyr_name=self.zChoice.GetString(self.zChoice.GetSelection()).lower(),
                                    time_field="Date")
-                self.makePointSymb(lyr_name=self.xChoice.GetString(self.xChoice.GetSelection()).lower())
+                self.make_point_class_breaks_symb(lyr_name=self.xChoice.GetString(self.xChoice.GetSelection()).lower())
                 self.setTimeCursor(lyr_name=self.xChoice.GetString(self.xChoice.GetSelection()).lower(),
                                    time_field="Date")
 
@@ -221,15 +247,15 @@ class Pivot(wx.Frame):
             if self.yChoice.GetString(self.yChoice.GetSelection()).lower() == "date_world_cases":
                 arcpy.AddMessage("5")
 
-                self.makeSymb(lyr_name=self.xChoice.GetString(self.xChoice.GetSelection()).lower())
+                self.make_class_breaks_symb(lyr_name=self.xChoice.GetString(self.xChoice.GetSelection()).lower())
                 self.rateLinePlot(data_name=self.zChoice.GetString(self.zChoice.GetSelection()).lower())
 
                 self.hide(lyr_name=self.zChoice.GetString(self.zChoice.GetSelection()).lower())
             else:
                 arcpy.AddMessage("1")
 
-                self.makeSymb3(lyr_name=self.zChoice.GetString(self.zChoice.GetSelection()).lower(),
-                               time_field="Date")
+                self.make_time_related_symb(lyr_name=self.zChoice.GetString(self.zChoice.GetSelection()).lower(),
+                                            time_field="Date")
 
                 self.hide(lyr_name=self.yChoice.GetString(self.yChoice.GetSelection()).lower())
         else:
@@ -237,7 +263,11 @@ class Pivot(wx.Frame):
         return
 
     def rateLinePlot(self, data_name):
-        # lineplot
+        """
+        Rate plot
+
+        :param data_name: Time dimension name
+        """
         df_temp = self.data_warehouse[data_name].groupby("Date")["Confirmed", "Deaths", "Recovred"].max().reset_index()
 
         # Agregate Date
@@ -263,7 +293,11 @@ class Pivot(wx.Frame):
         plt.show()
 
     def linePlot(self, data_name):
-        # lineplot
+        """
+        Line plot
+
+        :param data_name: The dimension name
+        """
         df_temp = self.data_warehouse[data_name].groupby("Date")["Confirmed", "Deaths", "Recovred"].max().reset_index()
 
         # Agregate Date
@@ -286,6 +320,11 @@ class Pivot(wx.Frame):
         plt.show()
 
     def graphPlot(self, data_name):
+        """
+        Bar plot
+
+        :param data_name: The dimension name
+        """
         try:
             df_temp = self.data_warehouse[data_name].groupby("Country_Re")[["Confirmed",
                                                                             "Deaths",
@@ -359,6 +398,11 @@ class Pivot(wx.Frame):
             arcpy.AddError(str(e))
 
     def stackPlot(self, data_name):
+        """
+        Stack plot
+
+        :param data_name: The dimension name
+        """
         df_temp = self.data_warehouse[data_name].groupby("Date")[
             "Confirmed", "Deaths", "Recovred"].max().reset_index()
         # Agregate Date
@@ -378,12 +422,18 @@ class Pivot(wx.Frame):
         plt.show()
 
     def makeLabel(self, lyr_name, field_name):
+        """
+        Setup lauer labels
+
+        :param lyr_name: The layer name
+        :param field_name: The field's name we want to label with
+        """
         lyr = self.lyr_dict[lyr_name]
         definition = lyr.getDefinition('V2')
         definition.visibility = True
         definition.labelClasses[0] = {
             "type": "CIMLabelClass",
-            "expression": "$feature.Country_Re",
+            "expression": "$feature."+field_name,
             "expressionEngine": "Arcade",
             "featuresToLabel": "AllVisibleFeatures",
             "maplexLabelPlacementProperties": {
@@ -594,7 +644,12 @@ class Pivot(wx.Frame):
         lyr.setDefinition(definition)
         return
 
-    def makeSymb(self, lyr_name):
+    def make_class_breaks_symb(self, lyr_name):
+        """
+        Setup lauer 'ClassBreaksRenderer' symbology
+
+        :param lyr_name: The layer name
+        """
         try:
             lyr = self.lyr_dict[lyr_name]
             definition = lyr.getDefinition('V2')
@@ -1149,7 +1204,12 @@ class Pivot(wx.Frame):
             arcpy.AddError(str(e))
         return
 
-    def makePointSymb(self, lyr_name):
+    def make_point_class_breaks_symb(self, lyr_name):
+        """
+        Setup point lauer 'ClassBreaksRenderer' symbology
+
+        :param lyr_name: The layer name
+        """
         try:
             lyr = self.lyr_dict[lyr_name]
             definition = lyr.getDefinition('V2')
@@ -2364,7 +2424,12 @@ class Pivot(wx.Frame):
             arcpy.AddError(str(e))
         return
 
-    def makeSymb2(self, lyr_name):
+    def make_simple_symb(self, lyr_name):
+        """
+        Setup simple class symbology
+
+        :param lyr_name: The layer name
+        """
         try:
             lyr = self.lyr_dict[lyr_name]
             definition = lyr.getDefinition('V2')
@@ -2845,7 +2910,13 @@ class Pivot(wx.Frame):
             arcpy.AddError(str(e))
         return
 
-    def makeSymb3(self, lyr_name, time_field):
+    def make_time_related_symb(self, lyr_name, time_field):
+        """
+        Setup time related symbology
+
+        :param lyr_name: The layer name
+        :param time_field: Time field
+        """
         try:
             lyr = self.lyr_dict[lyr_name]
             definition = lyr.getDefinition('V2')
@@ -4674,6 +4745,12 @@ class Pivot(wx.Frame):
         return
 
     def setTimeCursor(self, lyr_name, time_field):
+        """
+        Activate the time cursor
+
+        :param lyr_name: The timed layer name
+        :param time_field: Time field
+        """
         try:
             lyr = self.lyr_dict[lyr_name]
             definition = lyr.getDefinition('V2')
@@ -4705,7 +4782,9 @@ class Pivot(wx.Frame):
         return
 
     def reset_lyrs(self):
-        # arcpy.env.overwriteOutput = True
+        """
+        Reset all layers
+        """
         try:
             [self.active_map.removeLayer(lyr) for lyr in self.active_map.listLayers()]
 
@@ -4718,6 +4797,11 @@ class Pivot(wx.Frame):
         return
 
     def hide(self, lyr_name):
+        """
+        Hide layer
+
+        :param lyr_name: The layer name
+        """
         try:
             lyr = self.lyr_dict[lyr_name]
             definition = lyr.getDefinition('V2')

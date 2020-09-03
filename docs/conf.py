@@ -15,6 +15,7 @@ import sys
 sys.path.insert(0, os.path.abspath('..'))
 
 autodoc_mock_imports = ['arcpy']
+html_show_sourcelink = False
 # -- Project information -----------------------------------------------------
 
 project = 'ArcGIS Pro Pivot'
